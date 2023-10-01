@@ -10,6 +10,7 @@ import (
 
 func index(c *gin.Context) {
 	if session, _ := store.Get(c.Request, "logged_in"); session.Values["username"] != nil {
+		fmt.Printf("\n%v\n", session.Values["username"])
 		if usr, ok := users[session.Values["username"].(string)]; ok {
 			c.HTML(http.StatusOK, "loggedIn.html", usr)
 		}
@@ -24,7 +25,7 @@ func login(c *gin.Context) {
 		session.Values["username"] = usr.Name
 
 		session.Save(c.Request, c.Writer)
-		fmt.Printf("\n%v\n", session.Values["username"])
+		fmt.Printf("\nafter login coockie: %v\n", session.Values["username"])
 		c.HTML(http.StatusOK, "loggedIn.html", usr)
 	}
 }
@@ -33,8 +34,9 @@ func signup(c *gin.Context) {
 	if usrname := c.PostForm("username"); usrname != "" {
 		if _, ok := users[usrname]; !ok {
 			session, _ := store.Get(c.Request, "logged_in")
-			session.Values["username"] = users[usrname].Name
+			session.Values["username"] = usrname
 	
+			fmt.Printf("\nafter signup coockie: %v\n", session.Values["username"])
 			session.Save(c.Request, c.Writer)
 			users[usrname] = User{
 				ID:   uint64(len(users)+1),
