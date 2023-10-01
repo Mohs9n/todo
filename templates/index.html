@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script
+      src="https://unpkg.com/htmx.org@1.9.6"
+      integrity="sha384-FhXw7b6AlE/jyjlZH5iHa/tTe9EpJ1Y55RjcgPbjeWMskSxZt1v9qkxLJWNJaGni"
+      crossorigin="anonymous"
+    ></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@unocss/runtime"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@unocss/reset/normalize.min.css"
+    />
+  </head>
+  <body>
+    <div
+      class="h-full flex justify-center items-center gap-2 bg-blue-500"
+      id="userform"
+    >
+      <form>
+        <input type="text" name="username" placeholder="Username" />
+        <button
+          class="bg-sky-400 hover:bg-sky-600 rounded-1"
+          hx-target="#userform"
+          hx-swap="outerHTML"
+          hx-post="/signup"
+          name="signup"
+          value="1"
+        >
+          Sign Up
+        </button>
+        <button
+          class="bg-sky-400 hover:bg-sky-600 rounded-1"
+          hx-target="#userform"
+          hx-swap="outerHTML"
+          hx-post="/login"
+          name="login"
+          value="2"
+        >
+          Login
+        </button>
+      </form>
+    </div>
+  </body>
+</html>
