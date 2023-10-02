@@ -1,5 +1,7 @@
 package main
 
+import "github.com/Mohs9n/todo/internal/db"
+
 type User struct {
 	ID uint64
 	Name string
@@ -12,6 +14,6 @@ type Todo struct {
 	Done bool
 }
 
-type TodoList []Todo
+type TodoList []db.GetTodosRow
 
 type Users map[string]User

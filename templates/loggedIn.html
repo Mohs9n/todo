@@ -51,7 +51,7 @@
             hx-swap="outerHTML"
             checked
           />
-          <input type="hidden" name="todoIdx" value="{{ $idx }}" />
+          <input type="hidden" name="todoID" value="{{ $elem.ID }}" />
           <input type="hidden" name="username" value="{{ $.Name }}" />
         </form>
       </div>
@@ -70,7 +70,7 @@
             hx-swap="outerHTML"
             unchecked
           />
-          <input type="hidden" name="todoIdx" value="{{ $idx }}" />
+          <input type="hidden" name="todoID" value="{{ $elem.ID }}" />
           <input type="hidden" name="username" value="{{ $.Name }}" />
         </form>
       </div>

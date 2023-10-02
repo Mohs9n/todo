@@ -5,14 +5,24 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/Mohs9n/todo/internal/db"
 	"github.com/gin-gonic/gin"
 )
 
 func index(c *gin.Context) {
 	if session, _ := store.Get(c.Request, "logged_in"); session.Values["username"] != nil {
 		fmt.Printf("\n%v\n", session.Values["username"])
-		if usr, ok := users[session.Values["username"].(string)]; ok {
-			c.HTML(http.StatusOK, "loggedIn.html", usr)
+		if usr, err := queries.GetUserByName(c, session.Values["username"].(string)); err == nil {
+			todos, err := queries.GetTodos(c, usr.ID)
+			if err != nil {
+				fmt.Printf("\n%v\n", err)
+			}
+			user := User{
+				ID:   uint64(usr.ID),
+				Name: usr.Name,
+				TodoList: todos,
+			}
+			c.HTML(http.StatusOK, "loggedIn.html", user)
 		}
 	} else {
 		c.HTML(http.StatusOK, "index.html", nil)
@@ -20,71 +30,107 @@ func index(c *gin.Context) {
 }
 
 func login(c *gin.Context) {
-	if usr, ok := users[c.PostForm("username")]; ok {
+	// db
+	if exists, _ :=queries.CheckUserExists(c, c.PostForm("username")); exists {
+		usr, err :=queries.GetUserByName(c, c.PostForm("username"))
+		if err != nil {
+			fmt.Printf("\n%v\n", err)
+		}
+		fmt.Printf("\n%v\n", usr)
+
+		todos, err := queries.GetTodos(c, usr.ID)
+		if err != nil {
+			fmt.Printf("\n%v\n", err)
+		}
+		user := User{
+			ID:   uint64(usr.ID),
+			Name: usr.Name,
+			TodoList: todos,
+		}
+
+		// session
 		session, _ := store.Get(c.Request, "logged_in")
 		session.Values["username"] = usr.Name
 
 		session.Save(c.Request, c.Writer)
 		fmt.Printf("\nafter login coockie: %v\n", session.Values["username"])
-		c.HTML(http.StatusOK, "loggedIn.html", usr)
+
+		c.HTML(http.StatusOK, "loggedIn.html", user)
 	}
 }
 
 func signup(c *gin.Context) {
-	if usrname := c.PostForm("username"); usrname != "" {
-		if _, ok := users[usrname]; !ok {
-			session, _ := store.Get(c.Request, "logged_in")
-			session.Values["username"] = usrname
-	
-			fmt.Printf("\nafter signup coockie: %v\n", session.Values["username"])
-			session.Save(c.Request, c.Writer)
-			users[usrname] = User{
-				ID:   uint64(len(users)+1),
-				Name: usrname,
-				TodoList: TodoList{},
-			}
-			c.HTML(http.StatusOK, "loggedIn.html", users[usrname])
+	// db
+	if exists, _ :=queries.CheckUserExists(c, c.PostForm("username")); !exists {
+		usr, err :=queries.CreateUser(c, c.PostForm("username"))
+		if err != nil {
+			fmt.Printf("\n%v\n", err)
 		}
+		fmt.Printf("\n%v\n", usr)
+
+		todos, err := queries.GetTodos(c, usr.ID)
+		if err != nil {
+			fmt.Printf("\n%v\n", err)
+		}
+		user := User{
+			ID:   uint64(usr.ID),
+			Name: usr.Name,
+			TodoList: todos,
+		}
+
+		// session
+		session, _ := store.Get(c.Request, "logged_in")
+		session.Values["username"] = usr.Name
+
+		fmt.Printf("\nafter signup cookie: %v\n", session.Values["username"])
+		session.Save(c.Request, c.Writer)
+
+		c.HTML(http.StatusOK, "loggedIn.html", user)
 	}
 }
 
 func addTodoItem(c *gin.Context) {
-	fmt.Println(c.PostForm("username"))
-	
-	// Retrieve the user from the map
-	user, ok := users[c.PostForm("username")]
-	if !ok {
-		// Handle the case where the user doesn't exist
-		c.AbortWithStatus(http.StatusNotFound)
-		return
-	}	
-
-	// Modify the TodoList field of the retrieved user
-	user.TodoList = append(user.TodoList, Todo{
-		ID:   uint64(len(user.TodoList) + 1),
-		Text: c.PostForm("todoText"),
-		Done: false,
+	// db
+	usr, err := queries.GetUserByName(c, c.PostForm("username"))
+	if err != nil {
+		fmt.Printf("\n%v\n", err)
+	}
+	queries.CreateTodo(c, db.CreateTodoParams{
+		Text:   c.PostForm("todoText"),
+		Done:   false,
+		UserID: int32(usr.ID),
 	})
-
-	users[c.PostForm("username")] = user
-	
-	fmt.Println(user.TodoList)
+	todos, err := queries.GetTodos(c, int32(usr.ID))
+	if err != nil {
+		fmt.Printf("\n%v\n", err)
+	}
+	user:= User{
+		ID:   uint64(usr.ID),
+		Name: c.PostForm("username"),
+		TodoList: todos,
+	}
 	c.HTML(http.StatusOK, "loggedIn.html", user)
 }
 
 func toggleTodoItem(c *gin.Context) {
-	fmt.Printf("\nindex: %v\n", c.PostForm("todoIdx"))
-	user, ok := users[c.PostForm("username")]
-	if !ok {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+	// db
+	todoID, err := strconv.ParseInt(c.PostForm("todoID"), 10, 32)
+	if err != nil {
+		fmt.Printf("\n%v\n", err)
 	}
-	fmt.Printf("\nbefore: %v\n", user.TodoList)
-	idx, _ := strconv.ParseInt(c.PostForm("todoIdx"), 10, 64)
-
-	user.TodoList[idx].Done = !user.TodoList[idx].Done
-	fmt.Printf("\nconv index: %v\n", idx)
-	users[c.PostForm("username")] = user
-	fmt.Printf("\nafter: %v\n", users[c.PostForm("username")].TodoList)
+	queries.UpdateTodo(c, int32(todoID))
+	usr, err := queries.GetUserByName(c, c.PostForm("username"))
+	if err != nil {
+		fmt.Printf("\n%v\n", err)
+	}
+	todos, err := queries.GetTodos(c, usr.ID)
+	if err != nil {
+		fmt.Printf("\n%v\n", err)
+	}
+	user := User{
+		ID:   uint64(usr.ID),
+		Name: usr.Name,
+		TodoList: todos,
+	}
 	c.HTML(http.StatusOK, "loggedIn.html", user)
 }
