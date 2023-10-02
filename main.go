@@ -15,7 +15,6 @@ import (
 var (
 	queries *db.Queries
 	store = sessions.NewCookieStore([]byte("secret"))
-	users = make(Users)
 )
 
 func main() {
